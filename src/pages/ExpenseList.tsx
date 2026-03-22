@@ -30,17 +30,12 @@ const ExpenseList = () => {
     upload: 0
   });
 
-  // Load expenses from localStorage
+  // Load expenses from backend
   useEffect(() => {
-    const loadExpenses = () => {
+    const loadExpenses = async () => {
       setLoading(true);
       try {
-        const allExpenses = getExpenses();
-        const currentWallet = localStorage.getItem('walletAddress');
-        const loadedExpenses = currentWallet
-          ? allExpenses.filter(e => !e.walletAddress || e.walletAddress === currentWallet)
-          : allExpenses;
-
+        const loadedExpenses = await getExpenses();
         setExpenses(loadedExpenses);
         setFilteredExpenses(loadedExpenses);
         calculateStats(loadedExpenses);
@@ -52,7 +47,7 @@ const ExpenseList = () => {
     };
 
     loadExpenses();
-    // Set up interval to refresh data every few seconds (helpful if other pages add expenses)
+    // Set up interval to refresh data every few seconds
     const interval = setInterval(loadExpenses, 5000);
 
     return () => clearInterval(interval);
@@ -153,10 +148,14 @@ const ExpenseList = () => {
   }, [expenses, filters, sortConfig]);
 
   // Handle expense deletion
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
-      deleteExpense(id);
-      setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
+      try {
+        await deleteExpense(id);
+        setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
+      } catch (err) {
+        alert("Failed to delete expense");
+      }
     }
   };
 

@@ -1,7 +1,7 @@
 // src/pages/ManualExpenseEntry.tsx
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Receipt, Save, ArrowLeft, Trash2 } from 'lucide-react';
+import { Receipt, Save, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { saveExpense, getExpenses, deleteExpense } from '../lib/localStorage';
 import AIBudgetAdvisor from '../components/AIBudgetAdvisor'; // Import the new component
@@ -40,8 +40,15 @@ const ManualExpenseEntry = () => {
 
   useEffect(() => {
     // Load expenses when component mounts
-    const loadedExpenses = getExpenses();
-    setExpenses(loadedExpenses);
+    const loadExpenses = async () => {
+      try {
+        const loadedExpenses = await getExpenses();
+        setExpenses(loadedExpenses);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadExpenses();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -49,10 +56,14 @@ const ManualExpenseEntry = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
-      deleteExpense(id);
-      setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
+      try {
+        await deleteExpense(id);
+        setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
+      } catch (err) {
+        alert("Failed to delete expense");
+      }
     }
   };
 
@@ -62,7 +73,7 @@ const ManualExpenseEntry = () => {
     setError(null);
 
     try {
-      const newExpense = saveExpense({
+      const newExpense = await saveExpense({
         amount: parseFloat(formData.amount),
         description: formData.description,
         category: formData.category,
@@ -192,11 +203,10 @@ const ManualExpenseEntry = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg text-white text-sm font-medium ${
-                  loading
-                    ? 'bg-blue-600/50 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                }`}
+                className={`w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg text-white text-sm font-medium ${loading
+                  ? 'bg-blue-600/50 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  }`}
               >
                 {loading ? (
                   <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -247,7 +257,7 @@ const ManualExpenseEntry = () => {
                 )}
               </div>
               {expenses.length > 5 && (
-                <button 
+                <button
                   onClick={() => navigate('/expenses')}
                   className="w-full mt-4 text-sm text-gray-400 hover:text-white flex items-center justify-center"
                 >
@@ -256,7 +266,7 @@ const ManualExpenseEntry = () => {
                 </button>
               )}
             </div>
-            
+
             {/* Toggle for AI Budget Advisor */}
             <div className="mt-4 flex justify-between items-center">
               <button
@@ -266,7 +276,7 @@ const ManualExpenseEntry = () => {
                 {showBudgetAdvisor ? 'Hide AI Budget Advisor' : 'Show AI Budget Advisor'}
               </button>
             </div>
-            
+
             {/* AI Budget Advisor Component */}
             {showBudgetAdvisor && (
               <AIBudgetAdvisor />

@@ -113,16 +113,17 @@ const Dashboard: React.FC = () => {
 
   // load saved trades from backend and calculate balance
   useEffect(() => {
-    const savedAddress = localStorage.getItem('walletAddress');
+    const savedAddress = walletAddress || localStorage.getItem('walletAddress');
     if (savedAddress) {
       axios
         .get<SimulatedTrade[]>(`${API_BASE_URL}/api/simulated-trades/${savedAddress}`)
         .then((res) => {
-          setSimulatedTrades(res.data);
-          
+          const tradesData = Array.isArray(res.data) ? res.data : [];
+          setSimulatedTrades(tradesData);
+
           // Calculate demo balance from trades
           let calculatedBalance = 100000; // Start with initial demo balance
-          res.data.forEach(trade => {
+          tradesData.forEach(trade => {
             if (trade.type === 'buy') {
               calculatedBalance -= (trade.amount || 0);
             } else if (trade.type === 'sell') {
@@ -133,15 +134,18 @@ const Dashboard: React.FC = () => {
         })
         .catch((err) => console.error("Failed to load trades", err));
     }
-  }, []);
+  }, [walletAddress]);
 
   // load saved portfolio from backend
   useEffect(() => {
-    axios
-      .get<Portfolio>(`${API_BASE_URL}/api/portfolio`)
-      .then((res) => setPortfolio(res.data || {}))
-      .catch((err) => console.error("Failed to load portfolio", err));
-  }, []);
+    const savedAddress = walletAddress || localStorage.getItem('walletAddress');
+    if (savedAddress) {
+      axios
+        .get<Portfolio>(`${API_BASE_URL}/api/portfolio`)
+        .then((res) => setPortfolio(res.data || {}))
+        .catch((err) => console.error("Failed to load portfolio", err));
+    }
+  }, [walletAddress]);
 
   // Calculate total P/L for the selected crypto
   const calculateProfitLoss = useCallback(
@@ -170,8 +174,10 @@ const Dashboard: React.FC = () => {
         const provider = new BrowserProvider(window.ethereum);
         const accounts = await provider.send("eth_requestAccounts", []);
         if (accounts[0]) {
-          setWalletAddress(accounts[0]);
-          const balance = await provider.getBalance(accounts[0]);
+          const connectedAddress = accounts[0];
+          setWalletAddress(connectedAddress);
+          localStorage.setItem('walletAddress', connectedAddress);
+          const balance = await provider.getBalance(connectedAddress);
           setWalletBalance(formatEther(balance));
         }
       }
@@ -374,7 +380,7 @@ const Dashboard: React.FC = () => {
               Recent Activity
             </h3>
             <div className="space-y-2">
-              {simulatedTrades.slice(0, 3).map((trade) => (
+              {(Array.isArray(simulatedTrades) ? simulatedTrades : []).slice(0, 3).map((trade) => (
                 <div
                   key={trade.id}
                   className="text-sm flex items-center justify-between"
@@ -475,14 +481,14 @@ const Dashboard: React.FC = () => {
                   />
                 ))
             ) : (
-              cryptocurrencies?.map((crypto) => (
+              (Array.isArray(cryptocurrencies) ? cryptocurrencies : []).map((crypto) => (
                 <motion.button
                   key={crypto.id}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap backdrop-blur-sm ${selectedCrypto === crypto.id
-                      ? "bg-blue-500/80 shadow-lg shadow-blue-500/20"
-                      : "bg-gray-700/50 hover:bg-gray-600/50"
+                    ? "bg-blue-500/80 shadow-lg shadow-blue-500/20"
+                    : "bg-gray-700/50 hover:bg-gray-600/50"
                     }`}
                   onClick={() => handleCryptoSelect(crypto.id)}
                 >
@@ -502,7 +508,7 @@ const Dashboard: React.FC = () => {
                       repeatType: "reverse",
                     }}
                   >
-                    {crypto.price_change_percentage_24h.toFixed(2)}%
+                    {(crypto.price_change_percentage_24h || 0).toFixed(2)}%
                   </motion.span>
                 </motion.button>
               ))
@@ -554,8 +560,8 @@ const Dashboard: React.FC = () => {
                           return (
                             <p
                               className={`text-sm ${isPositive
-                                  ? "text-green-400"
-                                  : "text-red-400"
+                                ? "text-green-400"
+                                : "text-red-400"
                                 }`}
                             >
                               {isPositive ? "+" : ""}
@@ -574,8 +580,8 @@ const Dashboard: React.FC = () => {
                   <div className="flex gap-4">
                     <button
                       className={`px-4 py-2 rounded-lg ${chartType === "line"
-                          ? "bg-blue-500"
-                          : "bg-gray-700"
+                        ? "bg-blue-500"
+                        : "bg-gray-700"
                         }`}
                       onClick={() => setChartType("line")}
                     >
@@ -583,8 +589,8 @@ const Dashboard: React.FC = () => {
                     </button>
                     <button
                       className={`px-4 py-2 rounded-lg ${chartType === "candlestick"
-                          ? "bg-blue-500"
-                          : "bg-gray-700"
+                        ? "bg-blue-500"
+                        : "bg-gray-700"
                         }`}
                       onClick={() => setChartType("candlestick")}
                     >
@@ -627,8 +633,8 @@ const Dashboard: React.FC = () => {
                   <div className="flex gap-4 mb-4">
                     <button
                       className={`flex-1 py-2 rounded-lg ${tradeType === "amount"
-                          ? "bg-blue-500"
-                          : "bg-gray-700"
+                        ? "bg-blue-500"
+                        : "bg-gray-700"
                         }`}
                       onClick={() => setTradeType("amount")}
                     >
@@ -636,8 +642,8 @@ const Dashboard: React.FC = () => {
                     </button>
                     <button
                       className={`flex-1 py-2 rounded-lg ${tradeType === "quantity"
-                          ? "bg-blue-500"
-                          : "bg-gray-700"
+                        ? "bg-blue-500"
+                        : "bg-gray-700"
                         }`}
                       onClick={() => setTradeType("quantity")}
                     >
@@ -716,7 +722,7 @@ const Dashboard: React.FC = () => {
                   Trading History
                 </h3>
                 <div className="space-y-4">
-                  {simulatedTrades
+                  {(Array.isArray(simulatedTrades) ? simulatedTrades : [])
                     .filter(
                       (trade) =>
                         trade.crypto === selectedCryptoData.symbol
@@ -742,8 +748,8 @@ const Dashboard: React.FC = () => {
                           </span>
                         </div>
                         <div className="text-sm text-gray-400 mt-1">
-                          {trade.quantity.toFixed(4)} @ $
-                          {trade.price.toFixed(2)}
+                          {(trade.quantity || 0).toFixed(4)} @ $
+                          {(trade.price || 0).toFixed(2)}
                         </div>
                         <div className="text-sm text-gray-400">
                           {new Date(
@@ -785,7 +791,7 @@ const Dashboard: React.FC = () => {
                             : "text-red-400"
                         }
                       >
-                        {crypto.price_change_percentage_24h.toFixed(
+                        {(crypto.price_change_percentage_24h || 0).toFixed(
                           2
                         )}
                         %
@@ -797,7 +803,7 @@ const Dashboard: React.FC = () => {
                     {portfolio[crypto.id] && (
                       <div className="mt-1 text-sm text-gray-400">
                         Holdings:{" "}
-                        {portfolio[crypto.id].quantity.toFixed(4)}
+                        {(portfolio[crypto.id]?.quantity || 0).toFixed(4)}
                       </div>
                     )}
                   </motion.div>

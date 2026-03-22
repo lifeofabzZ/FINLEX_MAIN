@@ -28,10 +28,14 @@ router.post('/', async (req, res) => {
 
         const lowerAddress = walletAddress.toLowerCase();
 
-        // Verify user exists just to be safe
-        const user = await User.findOne({ walletAddress: lowerAddress });
+        // Find or auto-create User based on Metamask connection
+        let user = await User.findOne({ walletAddress: lowerAddress });
         if (!user) {
-            console.warn(`Attempting to save trade for non-existent user wallet ${lowerAddress}, but proceeding...`);
+            user = new User({
+                walletAddress: lowerAddress,
+                demoBalance: 100000
+            });
+            await user.save();
         }
 
         const trade = new SimulatedTrade({

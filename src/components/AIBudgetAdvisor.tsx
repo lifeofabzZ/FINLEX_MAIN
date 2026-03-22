@@ -30,10 +30,15 @@ const AIBudgetAdvisor = () => {
     analyzeExpenses();
   }, []);
 
-  const analyzeExpenses = () => {
+  const analyzeExpenses = async () => {
     setLoading(true);
 
-    const allExpenses = getExpenses();
+    let allExpenses: any[] = [];
+    try {
+      allExpenses = await getExpenses();
+    } catch (e) {
+      console.error("Failed to fetch expenses in Advisor", e);
+    }
     const now = new Date();
     const currentMonthStart = startOfMonth(now);
     const currentMonthEnd = endOfMonth(now);

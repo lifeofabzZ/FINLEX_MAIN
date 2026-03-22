@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Shield, RefreshCw } from 'lucide-react';
 
 const NewsPage = () => {
   const navigate = useNavigate();
-  const [news, setNews] = useState([]);
+  const [news, setNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,7 +14,7 @@ const NewsPage = () => {
         // Using CryptoCompare News API (free tier)
         const response = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
         const data = await response.json();
-        
+
         if (data.Data) {
           const formattedNews = data.Data.map(item => ({
             id: item.id,
@@ -112,7 +112,7 @@ const NewsPage = () => {
               <Shield className="h-8 w-8 text-blue-500" />
               <span className="text-xl font-bold text-white">FINLEX</span>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/')}
               className="text-gray-300 hover:text-white flex items-center"
             >
@@ -139,14 +139,14 @@ const NewsPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {news.map((item) => (
+            {(Array.isArray(news) ? news : []).map((item) => (
               <div
                 key={item.id}
                 className="bg-gray-800/50 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-700 hover:border-blue-500/50 transition-all hover:shadow-lg hover:shadow-blue-500/10"
               >
                 <div className="h-48 bg-gray-700/50 relative overflow-hidden">
-                  <img 
-                    src={item.imageUrl} 
+                  <img
+                    src={item.imageUrl}
                     alt={item.title}
                     className="w-full h-full object-cover transition-transform hover:scale-105"
                   />
@@ -162,9 +162,9 @@ const NewsPage = () => {
                   <p className="text-gray-300 mb-4 line-clamp-3">
                     {item.summary}
                   </p>
-                  <a 
-                    href={item.url} 
-                    target="_blank" 
+                  <a
+                    href={item.url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center text-blue-400 hover:text-blue-300"
                   >

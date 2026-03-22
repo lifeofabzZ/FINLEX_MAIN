@@ -54,6 +54,7 @@ const UserActivity: React.FC = () => {
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
   const [trackedExpensesTotal, setTrackedExpensesTotal] = useState(0);
+  const [expenses, setExpenses] = useState<any[]>([]); // Full expenses data
 
   useEffect(() => {
     const fetchUserActivity = async () => {
@@ -96,13 +97,21 @@ const UserActivity: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const walletAddress = localStorage.getItem('walletAddress');
-    if (walletAddress) {
-      const allExpenses = getExpenses();
-      const userExpenses = allExpenses.filter(e => e.walletAddress === walletAddress);
-      const total = userExpenses.reduce((sum, e) => sum + e.amount, 0);
-      setTrackedExpensesTotal(total);
-    }
+    const fetchExpensesAsync = async () => {
+      const walletAddress = localStorage.getItem('walletAddress');
+      if (walletAddress) {
+        try {
+          const allExpenses = await getExpenses();
+          const userExpenses = allExpenses.filter(e => e.walletAddress === walletAddress);
+          const total = userExpenses.reduce((sum, e) => sum + e.amount, 0);
+          setTrackedExpensesTotal(total);
+          setExpenses(userExpenses);
+        } catch (err) {
+          console.error("Failed to fetch expenses:", err);
+        }
+      }
+    };
+    fetchExpensesAsync();
   }, []);
 
   const filteredTrades = userData?.trades.filter((trade) => {
@@ -249,8 +258,8 @@ const UserActivity: React.FC = () => {
           {/* Net Change */}
           <motion.div
             className={`bg-gradient-to-br p-6 rounded-lg border ${totalEarned - totalSpent >= 0
-                ? 'from-green-900/30 to-green-700/20 border-green-700/50'
-                : 'from-red-900/30 to-red-700/20 border-red-700/50'
+              ? 'from-green-900/30 to-green-700/20 border-green-700/50'
+              : 'from-red-900/30 to-red-700/20 border-red-700/50'
               }`}
             whileHover={{ scale: 1.05 }}
           >
@@ -260,8 +269,8 @@ const UserActivity: React.FC = () => {
             </div>
             <p
               className={`text-2xl font-bold ${totalEarned - totalSpent >= 0
-                  ? 'text-green-400'
-                  : 'text-red-400'
+                ? 'text-green-400'
+                : 'text-red-400'
                 }`}
             >
               ${Math.abs(totalEarned - totalSpent).toLocaleString()}
@@ -310,8 +319,8 @@ const UserActivity: React.FC = () => {
                     key={type}
                     onClick={() => setFilterType(type as 'all' | 'buy' | 'sell')}
                     className={`px-4 py-2 rounded-lg transition ${filterType === type
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                       }`}
                   >
                     {type.charAt(0).toUpperCase() + type.slice(1)} (
@@ -420,6 +429,80 @@ const UserActivity: React.FC = () => {
                 <div className="p-12 text-center text-gray-400">
                   <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No {filterType !== 'all' ? filterType : ''} trades found.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Expenses Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="max-w-7xl mx-auto mt-8"
+        >
+          <div className="bg-gray-900/50 rounded-lg border border-gray-700 overflow-hidden">
+            <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+              <h2 className="text-xl font-bold flex items-center">
+                <Receipt className="w-5 h-5 mr-2 text-indigo-400" />
+                Tracked Expenses History
+              </h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              {expenses.length > 0 ? (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-700 bg-gray-800/50">
+                      <th className="px-6 py-4 text-left text-sm font-semibold">Date</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold">Description</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold">Category</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold">Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expenses.map((expense, index) => (
+                      <motion.tr
+                        key={expense.id || expense._id || index}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="border-b border-gray-700 hover:bg-gray-800/30 transition"
+                      >
+                        <td className="px-6 py-4 text-gray-400 text-sm">
+                          {new Date(expense.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 font-medium">
+                          {expense.description}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-1 bg-gray-700 text-gray-300 rounded-lg text-xs">
+                            {expense.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-lg text-xs ${expense.type === 'manual'
+                              ? 'bg-blue-900/30 text-blue-300'
+                              : 'bg-indigo-900/30 text-indigo-300'
+                            }`}>
+                            {expense.type === 'manual' ? 'Manual' : 'Uploaded'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-red-400 font-semibold">
+                          -₹{parseFloat(expense.amount).toLocaleString('en-IN', {
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="p-12 text-center text-gray-400">
+                  <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50 text-indigo-400" />
+                  <p>No tracked expenses found in MongoDB database.</p>
                 </div>
               )}
             </div>

@@ -64,15 +64,15 @@ const BillUploadExpense = () => {
 
       const normalizedDate = dateMatch
         ? (() => {
-            const raw = dateMatch[1]; // e.g. 11/12/2025 or 11-12-2025
-            const parts = raw.replace(/-/g, '/').split('/');
-            if (parts.length === 3) {
-              const [d, m, y] = parts;
-              const yyyy = y.length === 2 ? `20${y}` : y;
-              return `${yyyy}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-            }
-            return new Date().toISOString().split('T')[0];
-          })()
+          const raw = dateMatch[1]; // e.g. 11/12/2025 or 11-12-2025
+          const parts = raw.replace(/-/g, '/').split('/');
+          if (parts.length === 3) {
+            const [d, m, y] = parts;
+            const yyyy = y.length === 2 ? `20${y}` : y;
+            return `${yyyy}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+          }
+          return new Date().toISOString().split('T')[0];
+        })()
         : new Date().toISOString().split('T')[0];
 
       setExtractedData({
@@ -103,7 +103,7 @@ const BillUploadExpense = () => {
     setError(null);
 
     try {
-      saveExpense({
+      await saveExpense({
         amount: parseFloat(extractedData.amount || '0'),
         date: extractedData.date || new Date().toISOString().split('T')[0],
         description: extractedData.description || '',
@@ -157,11 +157,10 @@ const BillUploadExpense = () => {
 
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              isDragActive
+            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive
                 ? 'border-blue-500 bg-blue-500/10'
                 : 'border-gray-600 hover:border-blue-500 hover:bg-gray-700/50'
-            }`}
+              }`}
           >
             <input {...getInputProps()} />
             <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />

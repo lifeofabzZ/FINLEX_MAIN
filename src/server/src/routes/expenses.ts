@@ -4,11 +4,12 @@ import { Expense } from "../models/Expense";
 
 const router = Router();
 
-// GET /api/expenses
-router.get("/", async (_req, res) => {
+// GET /api/expenses/:walletAddress
+router.get("/:walletAddress", async (req, res) => {
   try {
-    const expenses = await Expense.find().sort({ date: -1, _id: -1 });
-    res.json(expenses);
+    const { walletAddress } = req.params;
+    const expressions = await Expense.find({ walletAddress: walletAddress.toLowerCase() }).sort({ date: -1, _id: -1 });
+    res.json(expressions);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to load expenses" });
@@ -17,9 +18,10 @@ router.get("/", async (_req, res) => {
 
 // POST /api/expenses
 router.post("/", async (req, res) => {
-  const { amount, description, category, date, type } = req.body;
+  const { walletAddress, amount, description, category, date, type } = req.body;
 
   if (
+    !walletAddress ||
     amount === undefined ||
     !description ||
     !category ||
@@ -32,6 +34,7 @@ router.post("/", async (req, res) => {
 
   try {
     const newExpense = new Expense({
+      walletAddress: walletAddress.toLowerCase(),
       amount,
       description,
       category,
